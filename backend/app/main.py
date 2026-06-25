@@ -31,11 +31,11 @@ def chat(req: ChatRequest):
     cfg = {"configurable": {"thread_id": req.thread_id}}
     messages = []
     if req.thread_id not in _seen_threads:
-        sys = build_page_system_message(
+        system_text = build_page_system_message(
             req.page.title, req.page.url, req.page.text,
             config.settings.page_text_limit,
         )
-        messages.append(SystemMessage(content=sys))
+        messages.append(SystemMessage(content=system_text))
         _seen_threads.add(req.thread_id)
     messages.append(HumanMessage(content=req.question))
 

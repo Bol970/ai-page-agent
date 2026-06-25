@@ -1,4 +1,4 @@
-import os
+import pytest
 from app.config import load_settings
 
 
@@ -17,6 +17,5 @@ def test_load_settings_reads_env(monkeypatch):
 def test_load_settings_missing_key_raises(monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("EXA_API_KEY", raising=False)
-    import pytest
     with pytest.raises(RuntimeError):
         load_settings()
