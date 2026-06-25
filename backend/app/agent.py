@@ -1,6 +1,7 @@
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph.state import CompiledStateGraph
 
 from app.tools import exa_search
 from app.config import Settings
@@ -24,7 +25,7 @@ def build_page_system_message(title: str, url: str, text: str, limit: int) -> st
     )
 
 
-def build_agent(settings: Settings):
+def build_agent(settings: Settings) -> CompiledStateGraph:
     model = ChatOpenAI(
         base_url=settings.openrouter_base_url,
         api_key=settings.openrouter_api_key,

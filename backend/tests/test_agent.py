@@ -19,3 +19,4 @@ def test_build_agent_has_checkpointer(monkeypatch):
     s = Settings("k", "https://openrouter.ai/api/v1", "m", "e", 12000)
     g = agent.build_agent(s)
     assert g.checkpointer is not None
+    assert hasattr(g, "invoke")  # это пригодный к запуску скомпилированный граф
