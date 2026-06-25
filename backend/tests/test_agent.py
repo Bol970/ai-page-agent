@@ -9,7 +9,7 @@ def test_build_page_system_message_truncates():
     assert "A" * 11 not in msg
 
 
-def test_build_agent_has_checkpointer(monkeypatch):
+def test_build_agent_is_runnable(monkeypatch):
     from app.config import Settings
     from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
     from langchain_core.messages import AIMessage
@@ -18,5 +18,5 @@ def test_build_agent_has_checkpointer(monkeypatch):
     monkeypatch.setattr(agent, "ChatOpenAI", lambda **k: fake)
     s = Settings("k", "https://openrouter.ai/api/v1", "m", "e", 12000)
     g = agent.build_agent(s)
-    assert g.checkpointer is not None
-    assert hasattr(g, "invoke")  # это пригодный к запуску скомпилированный граф
+    assert hasattr(g, "invoke")
+    assert g.checkpointer is None
