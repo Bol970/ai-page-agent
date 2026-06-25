@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChatPanel, type DisplayMsg } from "@/ChatPanel";
 import { Sidebar } from "@/Sidebar";
 import { getPageContent, type PageContent } from "@/lib/page";
@@ -13,6 +13,9 @@ export function App() {
   const [messages, setMessages] = useState<DisplayMsg[]>([]);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const chatRef = useRef<ChatMeta | null>(null);
+  useEffect(() => { chatRef.current = chat; }, [chat]);
 
   const refresh = useCallback(async (url: string) => {
     const data = await api.listChats(url);
@@ -87,14 +90,16 @@ export function App() {
   }
 
   async function setTags(tags: string[]) {
-    if (!chat) return;
-    const updated = await api.updateChat(chat.id, { tags });
+    const current = chatRef.current;
+    if (!current) return;
+    const updated = await api.updateChat(current.id, { tags });
     setChat(updated);
     if (page) await refresh(page.url);
   }
   const addTag = (t: string) =>
-    setTags(Array.from(new Set([...(chat?.tags ?? []), t])));
-  const removeTag = (t: string) => setTags((chat?.tags ?? []).filter((x) => x !== t));
+    setTags(Array.from(new Set([...(chatRef.current?.tags ?? []), t])));
+  const removeTag = (t: string) =>
+    setTags((chatRef.current?.tags ?? []).filter((x) => x !== t));
 
   async function togglePin(c: ChatMeta) {
     const updated = await api.updateChat(c.id, { pinned: !c.pinned });

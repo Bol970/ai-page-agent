@@ -3,6 +3,68 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ChatMeta } from "@/lib/chatsApi";
 
+interface RowProps {
+  c: ChatMeta;
+  currentId: string | null;
+  onSelect: (id: string) => void;
+  onTogglePin: (chat: ChatMeta) => void;
+  onDelete: (chat: ChatMeta) => void;
+}
+
+function Row({ c, currentId, onSelect, onTogglePin, onDelete }: RowProps) {
+  return (
+    <div
+      className={
+        "group flex cursor-pointer items-start gap-2 rounded-lg px-2 py-2 text-sm hover:bg-accent " +
+        (c.id === currentId ? "bg-accent" : "")
+      }
+      onClick={() => onSelect(c.id)}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1">
+          {c.pinned && <span>📌</span>}
+          <span className="truncate font-medium">{c.title || "Без названия"}</span>
+        </div>
+        {c.preview && (
+          <div className="truncate text-xs text-muted-foreground">{c.preview}</div>
+        )}
+        {c.tags.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {c.tags.map((t) => (
+              <span
+                key={t}
+                className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-secondary-foreground"
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100">
+        <button
+          title={c.pinned ? "Открепить" : "Закрепить"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePin(c);
+          }}
+        >
+          📌
+        </button>
+        <button
+          title="Удалить"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(c);
+          }}
+        >
+          🗑
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
@@ -31,60 +93,6 @@ export function Sidebar({
   const allTags = Array.from(new Set(allChats.flatMap((c) => c.tags))).sort();
   const applyFilter = (list: ChatMeta[]) =>
     tagFilter ? list.filter((c) => c.tags.includes(tagFilter)) : list;
-
-  function Row({ c }: { c: ChatMeta }) {
-    return (
-      <div
-        className={
-          "group flex cursor-pointer items-start gap-2 rounded-lg px-2 py-2 text-sm hover:bg-accent " +
-          (c.id === currentId ? "bg-accent" : "")
-        }
-        onClick={() => onSelect(c.id)}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
-            {c.pinned && <span>📌</span>}
-            <span className="truncate font-medium">{c.title || "Без названия"}</span>
-          </div>
-          {c.preview && (
-            <div className="truncate text-xs text-muted-foreground">{c.preview}</div>
-          )}
-          {c.tags.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {c.tags.map((t) => (
-                <span
-                  key={t}
-                  className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-secondary-foreground"
-                >
-                  #{t}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="flex shrink-0 gap-1 opacity-0 group-hover:opacity-100">
-          <button
-            title={c.pinned ? "Открепить" : "Закрепить"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onTogglePin(c);
-            }}
-          >
-            📌
-          </button>
-          <button
-            title="Удалить"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(c);
-            }}
-          >
-            🗑
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -135,13 +143,13 @@ export function Sidebar({
               <div className="px-2 py-1 text-xs text-muted-foreground">Нет чатов</div>
             )}
             {applyFilter(pageChats).map((c) => (
-              <Row key={c.id} c={c} />
+              <Row key={c.id} c={c} currentId={currentId} onSelect={onSelect} onTogglePin={onTogglePin} onDelete={onDelete} />
             ))}
             <div className="px-2 pt-3 text-xs font-semibold text-muted-foreground">
               Все чаты
             </div>
             {applyFilter(allChats).map((c) => (
-              <Row key={c.id} c={c} />
+              <Row key={c.id} c={c} currentId={currentId} onSelect={onSelect} onTogglePin={onTogglePin} onDelete={onDelete} />
             ))}
           </div>
         </ScrollArea>
