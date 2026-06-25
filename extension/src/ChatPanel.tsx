@@ -2,87 +2,108 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getPageContent } from "@/lib/page";
-import { askAgent } from "@/lib/api";
 import { renderMarkdown } from "@/lib/markdown";
+import type { ChatMeta } from "@/lib/chatsApi";
 
-interface Msg {
+export interface DisplayMsg {
   role: "user" | "assistant";
   content: string;
   isError?: boolean;
 }
 
-export function ChatPanel() {
-  const [threadId, setThreadId] = useState<string>("");
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const endRef = useRef<HTMLDivElement>(null);
+interface ChatPanelProps {
+  chat: ChatMeta | null;
+  messages: DisplayMsg[];
+  loading: boolean;
+  onSend: (question: string) => void;
+  onToggleSidebar: () => void;
+  onAddTag: (tag: string) => void;
+  onRemoveTag: (tag: string) => void;
+}
 
-  useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-      if (tab?.id) setThreadId(`tab-${tab.id}`);
-    });
-  }, []);
+export function ChatPanel({
+  chat,
+  messages,
+  loading,
+  onSend,
+  onToggleSidebar,
+  onAddTag,
+  onRemoveTag,
+}: ChatPanelProps) {
+  const [input, setInput] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function send() {
-    const question = input.trim();
-    if (!question || loading) return;
+  function submit() {
+    const q = input.trim();
+    if (!q || loading) return;
     setInput("");
-    setMessages((m) => [...m, { role: "user", content: question }]);
-    setLoading(true);
-    try {
-      const page = await getPageContent();
-      const answer = await askAgent(threadId, question, {
-        title: page.title,
-        url: page.url,
-        text: page.text,
-      });
-      setMessages((m) => [...m, { role: "assistant", content: answer }]);
-    } catch (e) {
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: `⚠️ ${(e as Error).message}`, isError: true },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+    onSend(q);
   }
-
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      send();
+      submit();
     }
+  }
+  function commitTag() {
+    const t = tagInput.trim();
+    if (!t) return;
+    setTagInput("");
+    onAddTag(t);
   }
 
   return (
-    <div className="flex h-screen w-full flex-col bg-background text-foreground">
-      <header className="flex items-center justify-between border-b px-4 py-3">
-        <span className="text-sm font-semibold">AI Page Agent</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setMessages([])}
-          disabled={loading}
-        >
-          Очистить
+    <div className="flex h-full w-full flex-col bg-background text-foreground">
+      <header className="flex items-center gap-2 border-b px-3 py-2">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleSidebar}>
+          ☰
         </Button>
+        <span className="flex-1 truncate text-sm font-semibold">
+          {chat?.title || "Новый чат"}
+        </span>
       </header>
+
+      {chat && (
+        <div className="flex flex-wrap items-center gap-1 border-b px-3 py-2">
+          {chat.tags.map((t) => (
+            <span
+              key={t}
+              className="flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-[10px] text-secondary-foreground"
+            >
+              #{t}
+              <button onClick={() => onRemoveTag(t)} className="opacity-70 hover:opacity-100">
+                ✕
+              </button>
+            </span>
+          ))}
+          <input
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitTag();
+              }
+            }}
+            placeholder="+ тег"
+            className="w-16 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+      )}
 
       <ScrollArea className="flex-1">
         <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
           {messages.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Спросите что-нибудь об этой странице. Например: «О чём эта
-              страница?» или «Найди свежие новости по теме».
+              Спросите что-нибудь об этой странице. Например: «О чём эта страница?»
+              или «Найди свежие новости по теме».
             </p>
           )}
-
           {messages.map((m, i) =>
             m.role === "user" ? (
               <div key={i} className="flex justify-end">
@@ -106,7 +127,6 @@ export function ChatPanel() {
               </div>
             )
           )}
-
           {loading && (
             <div className="flex gap-3">
               <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground">
@@ -135,7 +155,7 @@ export function ChatPanel() {
           <Button
             size="icon"
             className="h-9 w-9 shrink-0 rounded-full"
-            onClick={send}
+            onClick={submit}
             disabled={loading || !input.trim()}
           >
             ➤
