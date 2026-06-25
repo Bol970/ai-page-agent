@@ -80,9 +80,10 @@ extension/
 ```
 fastapi==0.115.*
 uvicorn[standard]==0.32.*
-langgraph>=0.2.50
-langchain-openai>=0.2.0
-langchain-core>=0.3.0
+langgraph>=1.0
+langchain>=1.0
+langchain-openai>=1.0
+langchain-core>=1.0
 exa-py>=1.0.0
 python-dotenv>=1.0.0
 pydantic>=2.0
@@ -313,12 +314,11 @@ def test_build_page_system_message_truncates():
 
 def test_build_agent_has_checkpointer(monkeypatch):
     from app.config import Settings
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+    from langchain_core.messages import AIMessage
 
-    class _FakeModel:
-        def bind_tools(self, *a, **k):
-            return self
-
-    monkeypatch.setattr(agent, "ChatOpenAI", lambda **k: _FakeModel())
+    fake = GenericFakeChatModel(messages=iter([AIMessage(content="ok")]))
+    monkeypatch.setattr(agent, "ChatOpenAI", lambda **k: fake)
     s = Settings("k", "https://openrouter.ai/api/v1", "m", "e", 12000)
     g = agent.build_agent(s)
     assert g.checkpointer is not None
@@ -333,7 +333,7 @@ Expected: FAIL (`ModuleNotFoundError: No module named 'app.agent'`)
 
 ```python
 from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.tools import exa_search
@@ -366,7 +366,7 @@ def build_agent(settings: Settings):
         temperature=0,
     )
     checkpointer = MemorySaver()
-    return create_react_agent(model, tools=[exa_search], checkpointer=checkpointer)
+    return create_agent(model, tools=[exa_search], checkpointer=checkpointer)
 ```
 
 - [ ] **Step 4: Запустить — убедиться, что проходит**
