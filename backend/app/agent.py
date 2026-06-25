@@ -1,6 +1,5 @@
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
 from app.tools import exa_search
@@ -32,5 +31,4 @@ def build_agent(settings: Settings) -> CompiledStateGraph:
         model=settings.openrouter_model,
         temperature=0,
     )
-    checkpointer = MemorySaver()
-    return create_agent(model, tools=[exa_search], checkpointer=checkpointer)
+    return create_agent(model, tools=[exa_search])

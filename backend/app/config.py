@@ -12,6 +12,7 @@ class Settings:
     openrouter_model: str
     exa_api_key: str
     page_text_limit: int
+    chats_db_path: str = "chats.db"
 
 
 def load_settings() -> Settings:
@@ -26,6 +27,7 @@ def load_settings() -> Settings:
         openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
         exa_api_key=exa_key,
         page_text_limit=int(os.getenv("PAGE_TEXT_LIMIT", "12000")),
+        chats_db_path=os.getenv("CHATS_DB_PATH", "chats.db"),
     )
 
 
