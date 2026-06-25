@@ -121,3 +121,64 @@ body {
   background-color: var(--background);
   color: var(--foreground);
 }
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+.assistant-html {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.assistant-html > :first-child {
+  margin-top: 0;
+}
+.assistant-html p {
+  margin: 0.5rem 0;
+}
+.assistant-html ul,
+.assistant-html ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+.assistant-html ul {
+  list-style: disc;
+}
+.assistant-html ol {
+  list-style: decimal;
+}
+.assistant-html li {
+  margin: 0.25rem 0;
+}
+.assistant-html a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.assistant-html strong {
+  font-weight: 600;
+}
+.assistant-html h1,
+.assistant-html h2,
+.assistant-html h3 {
+  font-weight: 600;
+  margin: 0.75rem 0 0.4rem;
+}
+.assistant-html code {
+  background: var(--muted);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+}
+.assistant-html pre {
+  background: var(--muted);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+.assistant-html pre code {
+  background: transparent;
+  padding: 0;
+}
