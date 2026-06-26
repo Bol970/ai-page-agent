@@ -9,5 +9,5 @@ export default defineManifest({
   background: { service_worker: "src/background.ts", type: "module" },
   side_panel: { default_path: "index.html" },
   permissions: ["activeTab", "scripting", "tabs", "sidePanel"],
-  host_permissions: ["http://localhost:8000/*"],
+  host_permissions: ["http://localhost:8000/*", "<all_urls>"],
 });
