@@ -11,6 +11,13 @@ export interface DisplayMsg {
   isError?: boolean;
 }
 
+const QUICK_PROMPTS = [
+  "О чём эта страница?",
+  "Кратко перескажи",
+  "Главные тезисы списком",
+  "Найди свежее по теме",
+];
+
 interface ChatPanelProps {
   chat: ChatMeta | null;
   messages: DisplayMsg[];
@@ -144,6 +151,19 @@ export function ChatPanel({
       </ScrollArea>
 
       <div className="border-t px-4 py-3">
+        {!loading && (
+          <div className="mx-auto mb-2 flex max-w-3xl flex-wrap gap-1.5">
+            {QUICK_PROMPTS.map((q) => (
+              <button
+                key={q}
+                onClick={() => onSend(q)}
+                className="rounded-full border bg-secondary px-3 py-1 text-xs text-secondary-foreground hover:bg-accent"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border bg-card px-3 py-2">
           <Textarea
             value={input}
