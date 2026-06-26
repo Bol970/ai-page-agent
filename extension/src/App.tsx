@@ -23,11 +23,15 @@ export function App() {
   const [messages, setMessages] = useState<DisplayMsg[]>([]);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentTabId, setCurrentTabId] = useState<number | null>(null);
 
   const chatRef = useRef<ChatMeta | null>(null);
   useEffect(() => {
     chatRef.current = chat;
   }, [chat]);
+
+  // Память: какой чат был открыт на каждой вкладке (на время сессии панели).
+  const tabChat = useRef<Map<number, string>>(new Map());
 
   const refresh = useCallback(async (url: string) => {
     const data = await api.listChats(url);
@@ -36,7 +40,12 @@ export function App() {
     return data;
   }, []);
 
-  // Читает активную вкладку и подтягивает её чаты (открывает последний или пустой новый).
+  function openChatMeta(meta: ChatMeta, msgs: { role: "user" | "assistant"; content: string }[]) {
+    setChat(meta);
+    setMessages(msgs.map((m) => ({ role: m.role, content: m.content })));
+  }
+
+  // Читает активную вкладку и открывает её чат (запомненный → свежий → пустой).
   const syncActiveTab = useCallback(async () => {
     let p: PageContent;
     try {
@@ -56,12 +65,18 @@ export function App() {
       return;
     }
     setPage(p);
+    setCurrentTabId(p.tabId);
     try {
       const data = await refresh(p.url);
-      if (data.page.length > 0) {
-        const { chat, messages } = await api.getChat(data.page[0].id);
-        setChat(chat);
-        setMessages(messages.map((m) => ({ role: m.role, content: m.content })));
+      const rememberedId = tabChat.current.get(p.tabId);
+      const remembered = rememberedId
+        ? data.page.find((c) => c.id === rememberedId)
+        : undefined;
+      const target = remembered ?? data.page[0];
+      if (target) {
+        const full = await api.getChat(target.id);
+        openChatMeta(full.chat, full.messages);
+        tabChat.current.set(p.tabId, target.id);
       } else {
         setChat(null);
         setMessages([]);
@@ -79,7 +94,7 @@ export function App() {
     }
   }, [refresh]);
 
-  // Первичная загрузка + реакция на смену/обновление активной вкладки.
+  // Первичная загрузка + реакция на смену вкладки и реальную навигацию.
   useEffect(() => {
     syncActiveTab();
     const onActivated = () => syncActiveTab();
@@ -88,7 +103,8 @@ export function App() {
       info: chrome.tabs.TabChangeInfo,
       tab: chrome.tabs.Tab
     ) => {
-      if (info.status === "complete" && tab.active) syncActiveTab();
+      // только реальная навигация (сменился URL), не каждое обновление
+      if (info.url && tab.active) syncActiveTab();
     };
     chrome.tabs.onActivated.addListener(onActivated);
     chrome.tabs.onUpdated.addListener(onUpdated);
@@ -99,13 +115,14 @@ export function App() {
   }, [syncActiveTab]);
 
   async function selectChat(id: string) {
-    const { chat, messages } = await api.getChat(id);
-    setChat(chat);
-    setMessages(messages.map((m) => ({ role: m.role, content: m.content })));
+    const full = await api.getChat(id);
+    openChatMeta(full.chat, full.messages);
+    if (currentTabId !== null) tabChat.current.set(currentTabId, id);
     setSidebarOpen(false);
   }
 
   function newChat() {
+    if (currentTabId !== null) tabChat.current.delete(currentTabId);
     setChat(null);
     setMessages([]);
     setSidebarOpen(false);
@@ -120,6 +137,7 @@ export function App() {
     try {
       p = await getPageContent();
       setPage(p);
+      setCurrentTabId(p.tabId);
     } catch (e) {
       setMessages((m) => [
         ...m,
@@ -143,6 +161,7 @@ export function App() {
         active = await api.createChat(p.url, p.title);
         setChat(active);
       }
+      tabChat.current.set(p.tabId, active.id);
       const { answer } = await api.sendMessage(active.id, question, {
         title: p.title,
         url: p.url,
@@ -183,6 +202,9 @@ export function App() {
   async function remove(c: ChatMeta) {
     if (!confirm(`Удалить чат «${c.title || "Без названия"}»?`)) return;
     await api.deleteChat(c.id);
+    for (const [tabId, id] of tabChat.current) {
+      if (id === c.id) tabChat.current.delete(tabId);
+    }
     if (chatRef.current?.id === c.id) newChat();
     if (page) await refresh(page.url);
   }
