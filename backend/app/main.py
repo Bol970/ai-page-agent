@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 from app import config, db
-from app.config import load_settings
+from app.config import load_settings, apply_proxy
 from app.agent import build_agent, build_page_system_message
 from app.schemas import (
     CreateChatRequest,
@@ -13,6 +13,7 @@ from app.schemas import (
 )
 
 config.settings = load_settings()
+apply_proxy(config.settings.proxy_url)  # до создания клиентов, чтобы они подхватили прокси
 agent = build_agent(config.settings)
 
 app = FastAPI(title="AI Page Agent")
