@@ -50,18 +50,12 @@ export function App() {
     let p: PageContent;
     try {
       p = await getPageContent();
-    } catch (e) {
+    } catch {
+      // Служебная/пустая страница (chrome://, стартовая инкогнито и т.п.) —
+      // читать нечего, просто показываем пустое состояние без ошибки.
       setPage(null);
       setChat(null);
-      setMessages([
-        {
-          role: "assistant",
-          content:
-            `⚠️ Не удалось прочитать страницу: ${(e as Error).message}. ` +
-            "Откройте панель на обычной веб-странице (не chrome://, не странице расширений).",
-          isError: true,
-        },
-      ]);
+      setMessages([]);
       return;
     }
     setPage(p);
