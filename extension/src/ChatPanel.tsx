@@ -22,6 +22,7 @@ interface ChatPanelProps {
   chat: ChatMeta | null;
   messages: DisplayMsg[];
   loading: boolean;
+  pageReadable: boolean;
   onSend: (question: string) => void;
   onToggleSidebar: () => void;
   onAddTag: (tag: string) => void;
@@ -32,6 +33,7 @@ export function ChatPanel({
   chat,
   messages,
   loading,
+  pageReadable,
   onSend,
   onToggleSidebar,
   onAddTag,
@@ -47,7 +49,7 @@ export function ChatPanel({
 
   function submit() {
     const q = input.trim();
-    if (!q || loading) return;
+    if (!q || loading || !pageReadable) return;
     setInput("");
     onSend(q);
   }
@@ -107,8 +109,18 @@ export function ChatPanel({
         <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
           {messages.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Спросите что-нибудь об этой странице. Например: «О чём эта страница?»
-              или «Найди свежие новости по теме».
+              {pageReadable ? (
+                <>
+                  Спросите что-нибудь об этой странице. Например: «О чём эта
+                  страница?» или «Найди свежие новости по теме».
+                </>
+              ) : (
+                <>
+                  Эту страницу нельзя прочитать (служебная страница браузера,
+                  страница расширений или пустая вкладка). Откройте обычный сайт,
+                  чтобы задать вопрос.
+                </>
+              )}
             </p>
           )}
           {messages.map((m, i) =>
@@ -151,7 +163,7 @@ export function ChatPanel({
       </ScrollArea>
 
       <div className="border-t px-4 py-3">
-        {!loading && (
+        {!loading && pageReadable && (
           <div className="mx-auto mb-2 flex max-w-3xl flex-wrap gap-1.5">
             {QUICK_PROMPTS.map((q) => (
               <button
@@ -169,14 +181,17 @@ export function ChatPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Спросите об этой странице…"
-            className="max-h-40 min-h-[40px] flex-1 resize-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
+            disabled={!pageReadable}
+            placeholder={
+              pageReadable ? "Спросите об этой странице…" : "Страница недоступна для чтения"
+            }
+            className="max-h-40 min-h-[40px] flex-1 resize-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0 disabled:cursor-not-allowed"
           />
           <Button
             size="icon"
             className="h-9 w-9 shrink-0 rounded-full"
             onClick={submit}
-            disabled={loading || !input.trim()}
+            disabled={loading || !input.trim() || !pageReadable}
           >
             ➤
           </Button>

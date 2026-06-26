@@ -17,6 +17,7 @@ function normalizeUrl(u: string): string {
 
 export function App() {
   const [page, setPage] = useState<PageContent | null>(null);
+  const [pageReadable, setPageReadable] = useState(true);
   const [pageChats, setPageChats] = useState<ChatMeta[]>([]);
   const [allChats, setAllChats] = useState<ChatMeta[]>([]);
   const [chat, setChat] = useState<ChatMeta | null>(null);
@@ -52,13 +53,15 @@ export function App() {
       p = await getPageContent();
     } catch {
       // Служебная/пустая страница (chrome://, стартовая инкогнито и т.п.) —
-      // читать нечего, просто показываем пустое состояние без ошибки.
+      // читать нечего: пустое состояние без ошибки и без предложений действий.
       setPage(null);
+      setPageReadable(false);
       setChat(null);
       setMessages([]);
       return;
     }
     setPage(p);
+    setPageReadable(true);
     setCurrentTabId(p.tabId);
     try {
       const data = await refresh(p.url);
@@ -209,6 +212,7 @@ export function App() {
         chat={chat}
         messages={messages}
         loading={loading}
+        pageReadable={pageReadable}
         onSend={send}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
         onAddTag={addTag}
