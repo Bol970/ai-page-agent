@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+
+# SQLite история чатов
+chats.db
+*.db
