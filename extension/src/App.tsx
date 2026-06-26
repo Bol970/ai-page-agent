@@ -39,8 +39,22 @@ export function App() {
 
   useEffect(() => {
     (async () => {
-      const p = await getPageContent();
-      setPage(p);
+      let p: PageContent;
+      try {
+        p = await getPageContent();
+        setPage(p);
+      } catch (e) {
+        setMessages([
+          {
+            role: "assistant",
+            content:
+              `⚠️ Не удалось прочитать страницу: ${(e as Error).message}. ` +
+              "Откройте панель на обычной веб-странице (не chrome://, не странице расширений) и переоткройте её.",
+            isError: true,
+          },
+        ]);
+        return;
+      }
       try {
         const data = await refresh(p.url);
         if (data.page.length > 0) {
@@ -52,7 +66,8 @@ export function App() {
         setMessages([
           {
             role: "assistant",
-            content: "⚠️ Бэкенд недоступен. Запустите сервер на :8000.",
+            content:
+              "⚠️ Бэкенд недоступен. Запустите сервер: uvicorn app.main:app --port 8000",
             isError: true,
           },
         ]);
@@ -61,8 +76,19 @@ export function App() {
   }, [refresh]);
 
   async function send(question: string) {
-    if (!page) return;
     setMessages((m) => [...m, { role: "user", content: question }]);
+    if (!page) {
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content:
+            "⚠️ Страница ещё не прочитана. Откройте панель на обычной веб-странице и переоткройте её (кликом по иконке).",
+          isError: true,
+        },
+      ]);
+      return;
+    }
     setLoading(true);
     try {
       let active = chat;
