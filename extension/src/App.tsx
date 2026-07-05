@@ -163,6 +163,7 @@ export function App() {
         title: p.title,
         url: p.url,
         text: p.text,
+        html: p.html,
       });
       setMessages((m) => [...m, { role: "assistant", content: answer }]);
       const fresh = await api.getChat(active.id);

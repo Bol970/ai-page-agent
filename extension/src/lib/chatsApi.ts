@@ -23,6 +23,7 @@ export interface PagePayload {
   title: string;
   url: string;
   text: string;
+  html: string;
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
