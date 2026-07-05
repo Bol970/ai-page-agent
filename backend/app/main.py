@@ -9,7 +9,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from app import config, db, page_context
 from app.config import load_settings, apply_proxy
 from app.agent import build_agent, build_page_system_message
-from app.observability import build_langfuse_handler
+from app.observability import build_langfuse_handler, flush_langfuse
 from app.schemas import (
     CreateChatRequest,
     MessageRequest,
@@ -142,6 +142,8 @@ def post_message(chat_id: str, req: MessageRequest):
             answer = f"Ошибка при обращении к агенту: {exc}"
         finally:
             page_context.reset_page(token)
+            if langfuse_handler is not None:
+                flush_langfuse()  # трейсы этого запроса — сразу в Langfuse
 
         db.add_message(conn, chat_id, "assistant", answer)
         return ChatResponse(answer=answer)

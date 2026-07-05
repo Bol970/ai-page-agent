@@ -22,3 +22,15 @@ def build_langfuse_handler(settings: Settings):
     except Exception as exc:  # noqa: BLE001
         print(f"Langfuse отключён: {exc}")
         return None
+
+
+def flush_langfuse() -> None:
+    """Досылает накопленные трейсы в Langfuse. Вызывать после ответа, чтобы
+    трейсы появлялись сразу и не терялись при остановке процесса. Без клиента
+    (нет ключей) — безопасный no-op."""
+    try:
+        from langfuse import get_client
+
+        get_client().flush()
+    except Exception:  # noqa: BLE001
+        pass

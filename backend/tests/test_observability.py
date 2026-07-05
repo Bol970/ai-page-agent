@@ -1,5 +1,5 @@
 from app.config import Settings
-from app.observability import build_langfuse_handler
+from app.observability import build_langfuse_handler, flush_langfuse
 
 
 def _settings(**kw):
@@ -20,3 +20,9 @@ def test_both_keys_build_handler():
         _settings(langfuse_public_key="pk-lf-x", langfuse_secret_key="sk-lf-x")
     )
     assert handler is not None
+
+
+def test_flush_langfuse_is_safe_without_client():
+    # без инициализированного клиента flush — тихий no-op, не роняет запрос
+    flush_langfuse()
+
