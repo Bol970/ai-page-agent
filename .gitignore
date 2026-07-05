@@ -1,0 +1,33 @@
+# Local agent/editor state
+.agents/
+.codex/
+.superpowers/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Runtime data
+*.db
+*.sqlite
+*.sqlite3
+audio/
+
+# Node and build artifacts
+node_modules/
+dist/
+*.tsbuildinfo
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
