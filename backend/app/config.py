@@ -14,6 +14,11 @@ class Settings:
     page_text_limit: int
     chats_db_path: str = "chats.db"
     proxy_url: str = ""
+    tts_voice: str = "ru-RU-SvetlanaNeural"
+    audio_dir: str = "audio"
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_host: str = "https://cloud.langfuse.com"
 
 
 def load_settings() -> Settings:
@@ -22,14 +27,21 @@ def load_settings() -> Settings:
     missing = [n for n, v in [("OPENROUTER_API_KEY", api_key), ("EXA_API_KEY", exa_key)] if not v]
     if missing:
         raise RuntimeError(f"Не заданы переменные окружения: {', '.join(missing)}. Скопируйте .env.example в .env и заполните.")
+    chats_db_path = os.getenv("CHATS_DB_PATH", "chats.db")
     return Settings(
         openrouter_api_key=api_key,
         openrouter_base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
         openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
         exa_api_key=exa_key,
         page_text_limit=int(os.getenv("PAGE_TEXT_LIMIT", "12000")),
-        chats_db_path=os.getenv("CHATS_DB_PATH", "chats.db"),
+        chats_db_path=chats_db_path,
         proxy_url=os.getenv("PROXY_URL", ""),
+        tts_voice=os.getenv("TTS_VOICE", "ru-RU-SvetlanaNeural"),
+        # аудио живёт рядом с БД чатов
+        audio_dir=os.path.join(os.path.dirname(chats_db_path) or ".", "audio"),
+        langfuse_public_key=os.getenv("LANGFUSE_PUBLIC_KEY", ""),
+        langfuse_secret_key=os.getenv("LANGFUSE_SECRET_KEY", ""),
+        langfuse_host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
     )
 
 

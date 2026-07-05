@@ -1,4 +1,5 @@
 import pytest
+import os
 from app.config import load_settings, apply_proxy
 
 
@@ -42,3 +43,32 @@ def test_apply_proxy_empty_noop(monkeypatch):
     apply_proxy("")
     import os
     assert "HTTPS_PROXY" not in os.environ
+
+
+def test_load_settings_new_defaults(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("EXA_API_KEY", "e")
+    for var in ("TTS_VOICE", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_HOST", "CHATS_DB_PATH"):
+        monkeypatch.delenv(var, raising=False)
+    s = load_settings()
+    assert s.tts_voice == "ru-RU-SvetlanaNeural"
+    assert s.audio_dir == os.path.join(".", "audio")  # рядом с chats.db
+    assert s.langfuse_public_key == ""
+    assert s.langfuse_secret_key == ""
+    assert s.langfuse_host == "https://cloud.langfuse.com"
+
+
+def test_load_settings_langfuse_and_audio_dir(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("EXA_API_KEY", "e")
+    monkeypatch.setenv("TTS_VOICE", "ru-RU-DmitryNeural")
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-1")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-1")
+    monkeypatch.setenv("LANGFUSE_HOST", "https://us.cloud.langfuse.com")
+    monkeypatch.setenv("CHATS_DB_PATH", "/data/db/chats.db")
+    s = load_settings()
+    assert s.tts_voice == "ru-RU-DmitryNeural"
+    assert s.langfuse_public_key == "pk-lf-1"
+    assert s.langfuse_secret_key == "sk-lf-1"
+    assert s.langfuse_host == "https://us.cloud.langfuse.com"
+    assert s.audio_dir == "/data/db/audio"
