@@ -111,3 +111,4 @@ def test_messages_pass_langfuse_session_metadata(monkeypatch, tmp_path):
     client.post(f"/chats/{cid}/messages", json={"question": "q", "page": page})
 
     assert seen_configs[0]["metadata"]["langfuse_session_id"] == cid
+    assert seen_configs[0]["run_name"] == "chat-response"

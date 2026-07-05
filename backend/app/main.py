@@ -130,7 +130,11 @@ def post_message(chat_id: str, req: MessageRequest):
         if not meta["title"]:
             db.update_chat(conn, chat_id, title=req.question[:60])
 
-        invoke_config = {"metadata": {"langfuse_session_id": chat_id}}
+        # run_name — имя трейса в Langfuse; langfuse_session_id группирует по чату
+        invoke_config = {
+            "run_name": "chat-response",
+            "metadata": {"langfuse_session_id": chat_id},
+        }
         if langfuse_handler is not None:
             invoke_config["callbacks"] = [langfuse_handler]
 

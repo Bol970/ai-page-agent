@@ -17,6 +17,7 @@ def build_langfuse_handler(settings: Settings):
             public_key=settings.langfuse_public_key,
             secret_key=settings.langfuse_secret_key,
             host=settings.langfuse_host,
+            environment=settings.langfuse_environment,
         )
         return CallbackHandler()
     except Exception as exc:  # noqa: BLE001

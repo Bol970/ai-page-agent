@@ -49,7 +49,8 @@ def test_load_settings_new_defaults(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "k")
     monkeypatch.setenv("EXA_API_KEY", "e")
     for var in ("TTS_VOICE", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_HOST", "CHATS_DB_PATH",
-                "TTS_PROVIDER", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID", "ELEVENLABS_MODEL"):
+                "TTS_PROVIDER", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID", "ELEVENLABS_MODEL",
+                "LANGFUSE_TRACING_ENVIRONMENT"):
         monkeypatch.delenv(var, raising=False)
     s = load_settings()
     assert s.tts_voice == "ru-RU-SvetlanaNeural"
@@ -57,6 +58,7 @@ def test_load_settings_new_defaults(monkeypatch):
     assert s.langfuse_public_key == ""
     assert s.langfuse_secret_key == ""
     assert s.langfuse_host == "https://cloud.langfuse.com"
+    assert s.langfuse_environment == "default"
     assert s.tts_provider == "edge"
     assert s.elevenlabs_api_key == ""
     assert s.elevenlabs_voice_id == "XB0fDUnXU5powFXDhCwa"

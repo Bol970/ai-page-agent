@@ -23,6 +23,7 @@ class Settings:
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
     langfuse_host: str = "https://cloud.langfuse.com"
+    langfuse_environment: str = "default"
 
 
 def load_settings() -> Settings:
@@ -50,6 +51,7 @@ def load_settings() -> Settings:
         langfuse_public_key=os.getenv("LANGFUSE_PUBLIC_KEY", ""),
         langfuse_secret_key=os.getenv("LANGFUSE_SECRET_KEY", ""),
         langfuse_host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+        langfuse_environment=os.getenv("LANGFUSE_TRACING_ENVIRONMENT", "default"),
     )
 
 

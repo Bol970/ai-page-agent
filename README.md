@@ -77,7 +77,10 @@ npm run build
 [Langfuse Cloud](https://cloud.langfuse.com), если в `backend/.env` заданы ключи:
 зарегистрируйтесь, создайте проект, скопируйте `LANGFUSE_PUBLIC_KEY` и
 `LANGFUSE_SECRET_KEY` (регион US — `LANGFUSE_HOST=https://us.cloud.langfuse.com`).
-Трейсы группируются по чатам (Sessions, `session_id` = id чата).
+Трейсы группируются по чатам (Sessions, `session_id` = id чата), имя трейса —
+`chat-response`, окружение задаётся `LANGFUSE_TRACING_ENVIRONMENT` (напр.
+`development`/`production`) для фильтрации в UI. После каждого ответа трейсы
+досылаются в Langfuse (`flush`), поэтому появляются сразу.
 Без ключей приложение работает как обычно, трейсинг молча выключен.
 
 ## Озвучка (TTS)
@@ -126,3 +129,4 @@ npm run build
 | `LANGFUSE_PUBLIC_KEY` | публичный ключ Langfuse (пусто = трейсинг выключен) |
 | `LANGFUSE_SECRET_KEY` | секретный ключ Langfuse |
 | `LANGFUSE_HOST` | регион Langfuse, по умолчанию `https://cloud.langfuse.com` |
+| `LANGFUSE_TRACING_ENVIRONMENT` | окружение трейсов для фильтрации в UI (по умолчанию `default`) |
