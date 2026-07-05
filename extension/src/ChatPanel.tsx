@@ -18,6 +18,13 @@ const QUICK_PROMPTS = [
   "Найди свежее по теме",
 ];
 
+// Ссылки на mp3, которые генерирует инструмент text_to_speech бэкенда.
+const AUDIO_URL_RE = /http:\/\/localhost:8000\/audio\/[0-9a-f-]+\.mp3/g;
+
+function extractAudioUrls(content: string): string[] {
+  return Array.from(new Set(content.match(AUDIO_URL_RE) ?? []));
+}
+
 interface ChatPanelProps {
   chat: ChatMeta | null;
   messages: DisplayMsg[];
@@ -138,10 +145,15 @@ export function ChatPanel({
                 {m.isError ? (
                   <div className="pt-0.5 text-sm text-destructive">{m.content}</div>
                 ) : (
-                  <div
-                    className="assistant-html min-w-0 flex-1 pt-0.5"
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
-                  />
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="assistant-html pt-0.5"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
+                    />
+                    {extractAudioUrls(m.content).map((src) => (
+                      <audio key={src} controls src={src} className="mt-2 w-full" />
+                    ))}
+                  </div>
                 )}
               </div>
             )
