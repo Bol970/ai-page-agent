@@ -35,6 +35,57 @@ function extractAudioUrls(content: string): string[] {
   return Array.from(new Set(content.match(AUDIO_URL_RE) ?? []));
 }
 
+// Рендерит HTML ответа и вешает кнопку «Копировать» на каждый код-блок.
+function AssistantHtml({ content }: { content: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    // убираем кнопки прошлого рендера, чтобы не задваивались
+    root.querySelectorAll("[data-copy-btn]").forEach((b) => b.remove());
+
+    const buttons: HTMLButtonElement[] = [];
+    root.querySelectorAll("pre").forEach((pre) => {
+      pre.style.position = "relative";
+      const btn = document.createElement("button");
+      btn.textContent = "Копировать";
+      btn.dataset.copyBtn = "";
+      btn.className =
+        "absolute right-1.5 top-1.5 rounded border bg-secondary px-2 py-0.5 text-[11px] text-secondary-foreground hover:bg-accent";
+
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const flash = (text: string) => {
+        btn.textContent = text;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => (btn.textContent = "Копировать"), 1500);
+      };
+      btn.addEventListener("click", async () => {
+        const code = (pre.querySelector("code") ?? pre).textContent ?? "";
+        try {
+          await navigator.clipboard.writeText(code);
+          flash("Скопировано ✓");
+        } catch {
+          flash("Не удалось");
+        }
+      });
+
+      pre.appendChild(btn);
+      buttons.push(btn);
+    });
+
+    return () => buttons.forEach((b) => b.remove());
+  }, [content]);
+
+  return (
+    <div
+      ref={ref}
+      className="assistant-html pt-0.5"
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+    />
+  );
+}
+
 interface ChatPanelProps {
   chat: ChatMeta | null;
   messages: DisplayMsg[];
@@ -171,10 +222,7 @@ export function ChatPanel({
                   <div className="pt-0.5 text-sm text-destructive">{m.content}</div>
                 ) : (
                   <div className="min-w-0 flex-1">
-                    <div
-                      className="assistant-html pt-0.5"
-                      dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
-                    />
+                    <AssistantHtml content={m.content} />
                     {extractAudioUrls(m.content).map((src) => (
                       <audio
                         key={src}
