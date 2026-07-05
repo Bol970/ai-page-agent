@@ -16,16 +16,8 @@ const QUICK_PROMPTS = [
   "Кратко перескажи",
   "Главные тезисы списком",
   "Найди свежее по теме",
-];
-
-// Кнопки-сценарии в пустом состоянии чата — демонстрируют инструменты агента.
-const DEMO_PROMPTS: { label: string; prompt: string }[] = [
-  { label: "📋 Скопируй страницу в Markdown", prompt: "Скопируй страницу в markdown" },
-  { label: "🔊 Озвучь страницу", prompt: "Кратко перескажи страницу и озвучь пересказ" },
-  {
-    label: "🔗 Открой первую ссылку и перескажи",
-    prompt: "Открой первую ссылку на странице и перескажи её содержимое",
-  },
+  "Скопируй страницу в markdown",
+  "Озвучь пересказ страницы",
 ];
 
 // Ссылки на mp3, которые генерирует инструмент text_to_speech бэкенда.
@@ -176,35 +168,20 @@ export function ChatPanel({
       <ScrollArea className="flex-1">
         <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
           {messages.length === 0 && (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                {pageReadable ? (
-                  <>
-                    Спросите что-нибудь об этой странице. Например: «О чём эта
-                    страница?» или «Найди свежие новости по теме».
-                  </>
-                ) : (
-                  <>
-                    Эту страницу нельзя прочитать (служебная страница браузера,
-                    страница расширений или пустая вкладка). Откройте обычный сайт,
-                    чтобы задать вопрос.
-                  </>
-                )}
-              </p>
-              {pageReadable && (
-                <div className="flex flex-col gap-2">
-                  {DEMO_PROMPTS.map((d) => (
-                    <button
-                      key={d.prompt}
-                      onClick={() => onSend(d.prompt)}
-                      className="rounded-lg border bg-secondary px-3 py-2 text-left text-sm text-secondary-foreground hover:bg-accent"
-                    >
-                      {d.label}
-                    </button>
-                  ))}
-                </div>
+            <p className="text-sm text-muted-foreground">
+              {pageReadable ? (
+                <>
+                  Спросите что-нибудь об этой странице. Например: «О чём эта
+                  страница?» или «Найди свежие новости по теме».
+                </>
+              ) : (
+                <>
+                  Эту страницу нельзя прочитать (служебная страница браузера,
+                  страница расширений или пустая вкладка). Откройте обычный сайт,
+                  чтобы задать вопрос.
+                </>
               )}
-            </div>
+            </p>
           )}
           {messages.map((m, i) =>
             m.role === "user" ? (
