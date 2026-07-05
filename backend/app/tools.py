@@ -176,11 +176,17 @@ def fetch_url(url: str) -> str:
         resp.raise_for_status()
     except Exception as exc:  # noqa: BLE001
         return f"Не удалось скачать {url} ({type(exc).__name__})."
-    body = resp.content[:FETCH_MAX_BYTES]
-    text = body.decode(resp.encoding or "utf-8", errors="replace")
-    if "html" in resp.headers.get("content-type", ""):
+    try:
+        body = resp.content[:FETCH_MAX_BYTES]
         try:
-            text = markdownify(str(_clean_html(text)), heading_style="ATX")
-        except Exception:  # noqa: BLE001
-            pass  # отдадим сырой текст
-    return text.strip()[:FETCH_LIMIT]
+            text = body.decode(resp.encoding or "utf-8", errors="replace")
+        except LookupError:  # сервер объявил неизвестную кодировку
+            text = body.decode("utf-8", errors="replace")
+        if "html" in resp.headers.get("content-type", ""):
+            try:
+                text = markdownify(str(_clean_html(text)), heading_style="ATX")
+            except Exception:  # noqa: BLE001
+                pass  # отдадим сырой текст
+        return text.strip()[:FETCH_LIMIT]
+    except Exception as exc:  # noqa: BLE001
+        return f"Не удалось обработать содержимое {url} ({type(exc).__name__})."

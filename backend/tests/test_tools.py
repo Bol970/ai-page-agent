@@ -172,3 +172,18 @@ def test_fetch_url_network_error_is_text(monkeypatch):
     monkeypatch.setattr(tools.httpx, "get", boom)
     out = tools.fetch_url.invoke({"url": "https://e.test"})
     assert "Не удалось скачать" in out
+
+
+def test_fetch_url_unknown_encoding_survives(monkeypatch):
+    resp = _FakeHttpxResponse(b"<p>ok</p>")
+    resp.encoding = "koi8-super-charset"  # неизвестная кодировка от сервера
+    monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: resp)
+    out = tools.fetch_url.invoke({"url": "https://e.test"})
+    assert "ok" in out
+
+
+def test_fetch_url_truncates_to_limit(monkeypatch):
+    resp = _FakeHttpxResponse(("x" * 20000).encode(), ctype="text/plain")
+    monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: resp)
+    out = tools.fetch_url.invoke({"url": "https://e.test"})
+    assert len(out) <= tools.FETCH_LIMIT
