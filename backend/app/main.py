@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
-from app import config, db
+from app import config, db, page_context
 from app.config import load_settings, apply_proxy
 from app.agent import build_agent, build_page_system_message
 from app.schemas import (
@@ -128,11 +128,14 @@ def post_message(chat_id: str, req: MessageRequest):
         if not meta["title"]:
             db.update_chat(conn, chat_id, title=req.question[:60])
 
+        token = page_context.set_page(req.page.title, req.page.url, req.page.html)
         try:
             result = agent.invoke({"messages": msgs})
             answer = result["messages"][-1].content
         except Exception as exc:  # noqa: BLE001
             answer = f"Ошибка при обращении к агенту: {exc}"
+        finally:
+            page_context.reset_page(token)
 
         db.add_message(conn, chat_id, "assistant", answer)
         return ChatResponse(answer=answer)

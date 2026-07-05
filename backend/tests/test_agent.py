@@ -20,3 +20,22 @@ def test_build_agent_is_runnable(monkeypatch):
     g = agent.build_agent(s)
     assert hasattr(g, "invoke")
     assert g.checkpointer is None
+
+
+def test_agent_has_seven_tools():
+    names = {t.name for t in agent.TOOLS}
+    assert names == {
+        "exa_search",
+        "page_to_markdown",
+        "extract_links",
+        "fetch_url",
+        "calculator",
+        "current_datetime",
+        "text_to_speech",
+    }
+
+
+def test_system_base_mentions_tools():
+    for name in ("exa_search", "page_to_markdown", "extract_links",
+                 "fetch_url", "calculator", "current_datetime", "text_to_speech"):
+        assert name in agent.SYSTEM_BASE

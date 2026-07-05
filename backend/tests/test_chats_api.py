@@ -54,3 +54,41 @@ def test_messages_uses_db_history_and_persists(monkeypatch, tmp_path):
     full = client.get(f"/chats/{cid}").json()
     assert [m["role"] for m in full["messages"]] == ["user", "assistant", "user", "assistant"]
     assert full["chat"]["title"] == "первый"  # заголовок из первого вопроса
+
+
+def test_messages_set_page_context_for_tools(monkeypatch, tmp_path):
+    from langchain_core.messages import AIMessage
+    from app import page_context
+
+    main_module, client = _client(monkeypatch, tmp_path)
+    seen = []
+
+    class _FakeAgent:
+        def invoke(self, payload, *a, **k):
+            seen.append(page_context.get_page())
+            return {"messages": [AIMessage(content="ответ")]}
+
+    monkeypatch.setattr(main_module, "agent", _FakeAgent())
+    cid = client.post("/chats", json={"page_url": "https://e.test/p", "page_title": "T"}).json()["id"]
+    page = {"title": "T", "url": "https://e.test/p", "text": "x", "html": "<p>тело</p>"}
+    client.post(f"/chats/{cid}/messages", json={"question": "q", "page": page})
+
+    assert seen[0] is not None
+    assert seen[0].html == "<p>тело</p>"
+    assert seen[0].url == "https://e.test/p"
+
+
+def test_messages_page_html_optional(monkeypatch, tmp_path):
+    from langchain_core.messages import AIMessage
+
+    main_module, client = _client(monkeypatch, tmp_path)
+
+    class _FakeAgent:
+        def invoke(self, payload, *a, **k):
+            return {"messages": [AIMessage(content="ответ")]}
+
+    monkeypatch.setattr(main_module, "agent", _FakeAgent())
+    cid = client.post("/chats", json={"page_url": "https://e.test/p", "page_title": "T"}).json()["id"]
+    page = {"title": "T", "url": "https://e.test/p", "text": "x"}  # без html — старый клиент
+    r = client.post(f"/chats/{cid}/messages", json={"question": "q", "page": page})
+    assert r.status_code == 200

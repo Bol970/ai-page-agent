@@ -5,6 +5,7 @@ class Page(BaseModel):
     title: str = ""
     url: str = ""
     text: str = ""
+    html: str = ""
 
 
 class CreateChatRequest(BaseModel):
