@@ -60,3 +60,64 @@ def test_current_datetime_mentions_current_year():
     from datetime import datetime
     out = tools.current_datetime.invoke({})
     assert str(datetime.now().year) in out
+
+
+# --- инструменты страницы (HTML из page_context) ---
+
+from app import page_context
+
+PAGE_HTML = """
+<html><body>
+  <script>var secret = 1;</script>
+  <style>.a { color: red }</style>
+  <h1>Заголовок</h1>
+  <p>Абзац с <a href="/rel">относительной ссылкой</a> и
+     <a href="https://abs.test/page">абсолютной</a>.</p>
+  <a href="https://abs.test/page">дубль</a>
+  <a href="mailto:a@b.c">почта</a>
+</body></html>
+"""
+
+
+def _with_page(html):
+    return page_context.set_page("T", "https://site.test/dir/page", html)
+
+
+def test_page_to_markdown_converts_and_strips_noise():
+    token = _with_page(PAGE_HTML)
+    try:
+        out = tools.page_to_markdown.invoke({})
+    finally:
+        page_context.reset_page(token)
+    assert "Заголовок" in out
+    assert "Абзац" in out
+    assert "var secret" not in out
+    assert "color: red" not in out
+
+
+def test_page_to_markdown_without_context():
+    assert "недоступно" in tools.page_to_markdown.invoke({})
+
+
+def test_page_to_markdown_respects_limit():
+    token = _with_page("<p>" + "ы" * 50000 + "</p>")
+    try:
+        out = tools.page_to_markdown.invoke({})
+    finally:
+        page_context.reset_page(token)
+    assert len(out) <= tools.PAGE_MD_LIMIT
+
+
+def test_extract_links_absolute_dedup_and_filters():
+    token = _with_page(PAGE_HTML)
+    try:
+        out = tools.extract_links.invoke({})
+    finally:
+        page_context.reset_page(token)
+    assert "https://site.test/rel" in out           # относительная стала абсолютной
+    assert out.count("https://abs.test/page") == 1  # дедупликация
+    assert "mailto:" not in out                     # не-http отфильтрованы
+
+
+def test_extract_links_without_context():
+    assert "недоступно" in tools.extract_links.invoke({})

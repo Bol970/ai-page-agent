@@ -1,10 +1,15 @@
 import ast
 import operator
 from datetime import datetime
+from urllib.parse import urljoin
 
 import os
+from bs4 import BeautifulSoup
 from exa_py import Exa
 from langchain_core.tools import tool
+from markdownify import markdownify
+
+from app import page_context
 
 
 @tool
@@ -90,3 +95,55 @@ def current_datetime() -> str:
         return f"Сейчас {now.isoformat(timespec='seconds')}, {_WEEKDAYS[now.weekday()]}."
     except Exception as exc:  # noqa: BLE001
         return f"Не удалось определить текущее время ({type(exc).__name__})."
+
+
+PAGE_MD_LIMIT = 20000
+MAX_LINKS = 100
+_PAGE_UNAVAILABLE = "Содержимое страницы недоступно (HTML не передан расширением)."
+
+
+def _clean_html(html: str) -> BeautifulSoup:
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "noscript", "svg"]):
+        tag.decompose()
+    return soup
+
+
+@tool
+def page_to_markdown() -> str:
+    """Конвертирует текущую открытую страницу в Markdown. Используй, когда
+    пользователь просит скопировать, сохранить или показать страницу в Markdown."""
+    page = page_context.get_page()
+    if page is None or not page.html:
+        return _PAGE_UNAVAILABLE
+    try:
+        md = markdownify(str(_clean_html(page.html)), heading_style="ATX")
+    except Exception as exc:  # noqa: BLE001
+        return f"Не удалось сконвертировать страницу ({type(exc).__name__})."
+    md = "\n".join(line.rstrip() for line in md.splitlines())
+    while "\n\n\n" in md:
+        md = md.replace("\n\n\n", "\n\n")
+    return md.strip()[:PAGE_MD_LIMIT]
+
+
+@tool
+def extract_links() -> str:
+    """Возвращает все ссылки текущей страницы: текст и абсолютный URL.
+    Используй, когда пользователь просит собрать или перечислить ссылки."""
+    page = page_context.get_page()
+    if page is None or not page.html:
+        return _PAGE_UNAVAILABLE
+    soup = _clean_html(page.html)
+    seen: set[str] = set()
+    lines: list[str] = []
+    for a in soup.find_all("a", href=True):
+        url = urljoin(page.url, a["href"])
+        if not url.startswith(("http://", "https://")) or url in seen:
+            continue
+        seen.add(url)
+        text = " ".join(a.get_text(" ", strip=True).split()) or url
+        lines.append(f"- [{text[:80]}]({url})")
+        if len(lines) >= MAX_LINKS:
+            lines.append(f"… и другие (показаны первые {MAX_LINKS}).")
+            break
+    return "\n".join(lines) if lines else "На странице нет ссылок."
