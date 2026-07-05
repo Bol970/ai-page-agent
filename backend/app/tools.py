@@ -85,5 +85,8 @@ _WEEKDAYS = ["понедельник", "вторник", "среда", "четв
 def current_datetime() -> str:
     """Возвращает текущие дату, время и день недели. Используй, когда вопрос
     касается «сегодня», «сейчас», текущего года — не угадывай их."""
-    now = datetime.now().astimezone()
-    return f"Сейчас {now.isoformat(timespec='seconds')}, {_WEEKDAYS[now.weekday()]}."
+    try:
+        now = datetime.now().astimezone()
+        return f"Сейчас {now.isoformat(timespec='seconds')}, {_WEEKDAYS[now.weekday()]}."
+    except Exception as exc:  # noqa: BLE001
+        return f"Не удалось определить текущее время ({type(exc).__name__})."
