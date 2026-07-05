@@ -92,3 +92,22 @@ def test_messages_page_html_optional(monkeypatch, tmp_path):
     page = {"title": "T", "url": "https://e.test/p", "text": "x"}  # без html — старый клиент
     r = client.post(f"/chats/{cid}/messages", json={"question": "q", "page": page})
     assert r.status_code == 200
+
+
+def test_messages_pass_langfuse_session_metadata(monkeypatch, tmp_path):
+    from langchain_core.messages import AIMessage
+
+    main_module, client = _client(monkeypatch, tmp_path)
+    seen_configs = []
+
+    class _FakeAgent:
+        def invoke(self, payload, config=None, **k):
+            seen_configs.append(config)
+            return {"messages": [AIMessage(content="ответ")]}
+
+    monkeypatch.setattr(main_module, "agent", _FakeAgent())
+    cid = client.post("/chats", json={"page_url": "https://e.test/p", "page_title": "T"}).json()["id"]
+    page = {"title": "T", "url": "https://e.test/p", "text": "x"}
+    client.post(f"/chats/{cid}/messages", json={"question": "q", "page": page})
+
+    assert seen_configs[0]["metadata"]["langfuse_session_id"] == cid

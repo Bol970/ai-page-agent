@@ -9,6 +9,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from app import config, db, page_context
 from app.config import load_settings, apply_proxy
 from app.agent import build_agent, build_page_system_message
+from app.observability import build_langfuse_handler
 from app.schemas import (
     CreateChatRequest,
     MessageRequest,
@@ -19,6 +20,7 @@ from app.schemas import (
 config.settings = load_settings()
 apply_proxy(config.settings.proxy_url)  # до создания клиентов, чтобы они подхватили прокси
 agent = build_agent(config.settings)
+langfuse_handler = build_langfuse_handler(config.settings)
 
 app = FastAPI(title="AI Page Agent")
 app.add_middleware(
@@ -128,9 +130,13 @@ def post_message(chat_id: str, req: MessageRequest):
         if not meta["title"]:
             db.update_chat(conn, chat_id, title=req.question[:60])
 
+        invoke_config = {"metadata": {"langfuse_session_id": chat_id}}
+        if langfuse_handler is not None:
+            invoke_config["callbacks"] = [langfuse_handler]
+
         token = page_context.set_page(req.page.title, req.page.url, req.page.html)
         try:
-            result = agent.invoke({"messages": msgs})
+            result = agent.invoke({"messages": msgs}, config=invoke_config)
             answer = result["messages"][-1].content
         except Exception as exc:  # noqa: BLE001
             answer = f"Ошибка при обращении к агенту: {exc}"
