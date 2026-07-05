@@ -31,3 +31,32 @@ def test_exa_search_formats_results(monkeypatch):
     assert "Заголовок 1" in out
     assert "https://a.test" in out
     assert "Заголовок 2" in out
+
+
+# --- calculator ---
+
+def test_calculator_basic():
+    assert "= 6" in tools.calculator.invoke({"expression": "2 + 2 * 2"})
+
+
+def test_calculator_power_and_parens():
+    assert "= 1048576" in tools.calculator.invoke({"expression": "2**20"})
+    assert "= 9" in tools.calculator.invoke({"expression": "(1 + 2) * 3"})
+
+
+def test_calculator_division_by_zero():
+    assert "деление на ноль" in tools.calculator.invoke({"expression": "1/0"})
+
+
+def test_calculator_rejects_evil_expressions():
+    for evil in ("__import__('os')", "abs(-1)", "x + 1", "2**999999", "'a'*3"):
+        out = tools.calculator.invoke({"expression": evil})
+        assert "Не удалось вычислить" in out, evil
+
+
+# --- current_datetime ---
+
+def test_current_datetime_mentions_current_year():
+    from datetime import datetime
+    out = tools.current_datetime.invoke({})
+    assert str(datetime.now().year) in out
