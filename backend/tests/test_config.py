@@ -48,7 +48,8 @@ def test_apply_proxy_empty_noop(monkeypatch):
 def test_load_settings_new_defaults(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "k")
     monkeypatch.setenv("EXA_API_KEY", "e")
-    for var in ("TTS_VOICE", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_HOST", "CHATS_DB_PATH"):
+    for var in ("TTS_VOICE", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_HOST", "CHATS_DB_PATH",
+                "TTS_PROVIDER", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID", "ELEVENLABS_MODEL"):
         monkeypatch.delenv(var, raising=False)
     s = load_settings()
     assert s.tts_voice == "ru-RU-SvetlanaNeural"
@@ -56,6 +57,24 @@ def test_load_settings_new_defaults(monkeypatch):
     assert s.langfuse_public_key == ""
     assert s.langfuse_secret_key == ""
     assert s.langfuse_host == "https://cloud.langfuse.com"
+    assert s.tts_provider == "edge"
+    assert s.elevenlabs_api_key == ""
+    assert s.elevenlabs_voice_id == "XB0fDUnXU5powFXDhCwa"
+    assert s.elevenlabs_model == "eleven_multilingual_v2"
+
+
+def test_load_settings_elevenlabs_from_env(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("EXA_API_KEY", "e")
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "el-1")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "VXYZ")
+    monkeypatch.setenv("ELEVENLABS_MODEL", "eleven_turbo_v2_5")
+    s = load_settings()
+    assert s.tts_provider == "elevenlabs"
+    assert s.elevenlabs_api_key == "el-1"
+    assert s.elevenlabs_voice_id == "VXYZ"
+    assert s.elevenlabs_model == "eleven_turbo_v2_5"
 
 
 def test_load_settings_langfuse_and_audio_dir(monkeypatch):

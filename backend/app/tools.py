@@ -226,6 +226,30 @@ def fetch_url(url: str) -> str:
 
 
 TTS_TEXT_LIMIT = 3000
+ELEVENLABS_TTS_URL = "https://api.elevenlabs.io/v1/text-to-speech"
+
+
+def _synthesize_edge(text: str, path: str) -> None:
+    """Синтез через бесплатный edge-tts (онлайн-сервис Microsoft)."""
+    communicate = edge_tts.Communicate(text, voice=config.settings.tts_voice)
+    asyncio.run(communicate.save(path))
+
+
+def _synthesize_elevenlabs(text: str, path: str) -> None:
+    """Синтез через ElevenLabs (нужен ключ). Трафик идёт через PROXY_URL."""
+    resp = httpx.post(
+        f"{ELEVENLABS_TTS_URL}/{config.settings.elevenlabs_voice_id}"
+        "?output_format=mp3_44100_128",
+        headers={
+            "xi-api-key": config.settings.elevenlabs_api_key,
+            "Content-Type": "application/json",
+        },
+        json={"text": text, "model_id": config.settings.elevenlabs_model},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    with open(path, "wb") as f:
+        f.write(resp.content)
 
 
 @tool
@@ -237,8 +261,11 @@ def text_to_speech(text: str) -> str:
     path = os.path.join(config.settings.audio_dir, filename)
     try:
         os.makedirs(config.settings.audio_dir, exist_ok=True)
-        communicate = edge_tts.Communicate(snippet, voice=config.settings.tts_voice)
-        asyncio.run(communicate.save(path))
+        # ElevenLabs только при явном выборе и наличии ключа, иначе — edge-tts
+        if config.settings.tts_provider == "elevenlabs" and config.settings.elevenlabs_api_key:
+            _synthesize_elevenlabs(snippet, path)
+        else:
+            _synthesize_edge(snippet, path)
     except Exception as exc:  # noqa: BLE001
         return f"Озвучка сейчас недоступна ({type(exc).__name__})."
     return (

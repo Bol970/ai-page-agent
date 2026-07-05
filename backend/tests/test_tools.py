@@ -275,3 +275,80 @@ def test_text_to_speech_error_is_text(monkeypatch, tmp_path):
     out = tools.text_to_speech.invoke({"text": "привет"})
     assert "Озвучка сейчас недоступна" in out
     assert list(tmp_path.glob("*.mp3")) == []
+
+
+# --- text_to_speech: провайдер ElevenLabs (httpx мокается) ---
+
+def _el_settings(tmp_path, **kw):
+    from app import config
+    from app.config import Settings
+
+    opts = dict(
+        audio_dir=str(tmp_path),
+        tts_provider="elevenlabs", elevenlabs_api_key="el-key",
+        elevenlabs_voice_id="VOICE123", elevenlabs_model="eleven_multilingual_v2",
+    )
+    opts.update(kw)
+    config.settings = Settings("k", "u", "m", "e", 100, **opts)
+    return config
+
+
+class _FakeElResponse:
+    def __init__(self):
+        self.content = b"el-mp3"
+
+    def raise_for_status(self):
+        pass
+
+
+def test_text_to_speech_elevenlabs_saves_file_and_calls_api(monkeypatch, tmp_path):
+    _el_settings(tmp_path)
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        return _FakeElResponse()
+
+    monkeypatch.setattr(tools.httpx, "post", fake_post)
+    # edge-путь не должен вызываться при рабочем ElevenLabs
+    monkeypatch.setattr(tools.edge_tts, "Communicate", _boom_communicate)
+
+    out = tools.text_to_speech.invoke({"text": "привет"})
+    files = list(tmp_path.glob("*.mp3"))
+    assert len(files) == 1
+    assert files[0].read_bytes() == b"el-mp3"
+    assert files[0].name in out
+    assert "VOICE123" in captured["url"]
+    assert captured["headers"]["xi-api-key"] == "el-key"
+    assert captured["json"]["model_id"] == "eleven_multilingual_v2"
+    assert captured["json"]["text"] == "привет"
+
+
+def test_text_to_speech_elevenlabs_without_key_falls_back_to_edge(monkeypatch, tmp_path):
+    _el_settings(tmp_path, elevenlabs_api_key="")  # провайдер elevenlabs, но ключа нет
+    called = []
+    monkeypatch.setattr(tools.httpx, "post", lambda *a, **k: called.append("post"))
+    monkeypatch.setattr(tools.edge_tts, "Communicate", _FakeCommunicate)
+
+    out = tools.text_to_speech.invoke({"text": "привет"})
+    assert "http://localhost:8000/audio/" in out
+    assert called == []  # ElevenLabs не дёргали
+    assert list(tmp_path.glob("*.mp3"))[0].read_bytes() == b"mp3-bytes"
+
+
+def test_text_to_speech_elevenlabs_error_is_text(monkeypatch, tmp_path):
+    _el_settings(tmp_path)
+
+    def boom(*a, **k):
+        raise RuntimeError("ElevenLabs 500")
+
+    monkeypatch.setattr(tools.httpx, "post", boom)
+    out = tools.text_to_speech.invoke({"text": "привет"})
+    assert "Озвучка сейчас недоступна" in out
+    assert list(tmp_path.glob("*.mp3")) == []
+
+
+def _boom_communicate(*a, **k):
+    raise AssertionError("edge-tts не должен вызываться при рабочем ElevenLabs")

@@ -80,6 +80,19 @@ npm run build
 Трейсы группируются по чатам (Sessions, `session_id` = id чата).
 Без ключей приложение работает как обычно, трейсинг молча выключен.
 
+## Озвучка (TTS)
+
+Инструмент `text_to_speech` поддерживает двух провайдеров, выбор — через
+`TTS_PROVIDER` в `backend/.env`:
+
+- `edge` (по умолчанию) — бесплатный edge-tts (голос из `TTS_VOICE`), ключ не нужен.
+- `elevenlabs` — более естественный голос ElevenLabs. Нужен `ELEVENLABS_API_KEY`;
+  голос и модель задаются `ELEVENLABS_VOICE_ID` (по умолчанию Charlotte) и
+  `ELEVENLABS_MODEL` (по умолчанию `eleven_multilingual_v2`, хорошо звучит на русском).
+
+Если выбран `elevenlabs`, но ключ не задан — озвучка молча откатывается на edge-tts.
+Исходящие запросы к ElevenLabs идут через `PROXY_URL`.
+
 ## Ограничения безопасности (демо)
 
 - Бэкенд слушает localhost с открытым CORS: пока он запущен, **любой сайт
@@ -105,7 +118,11 @@ npm run build
 | `PAGE_TEXT_LIMIT` | сколько символов страницы слать модели (по умолчанию 12000) |
 | `CHATS_DB_PATH` | путь к файлу SQLite с историей чатов (по умолчанию `chats.db`) |
 | `PROXY_URL` | прокси для исходящих запросов к LLM/EXA (пусто = напрямую), напр. `http://127.0.0.1:8118` |
-| `TTS_VOICE` | голос edge-tts для text_to_speech (по умолчанию `ru-RU-SvetlanaNeural`) |
+| `TTS_PROVIDER` | провайдер озвучки: `edge` (по умолчанию) или `elevenlabs` |
+| `TTS_VOICE` | голос edge-tts (по умолчанию `ru-RU-SvetlanaNeural`) |
+| `ELEVENLABS_API_KEY` | ключ ElevenLabs (пусто = фолбэк на edge-tts) |
+| `ELEVENLABS_VOICE_ID` | голос ElevenLabs (по умолчанию `XB0fDUnXU5powFXDhCwa`, Charlotte) |
+| `ELEVENLABS_MODEL` | модель ElevenLabs (по умолчанию `eleven_multilingual_v2`) |
 | `LANGFUSE_PUBLIC_KEY` | публичный ключ Langfuse (пусто = трейсинг выключен) |
 | `LANGFUSE_SECRET_KEY` | секретный ключ Langfuse |
 | `LANGFUSE_HOST` | регион Langfuse, по умолчанию `https://cloud.langfuse.com` |

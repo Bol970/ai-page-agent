@@ -16,6 +16,10 @@ class Settings:
     proxy_url: str = ""
     tts_voice: str = "ru-RU-SvetlanaNeural"
     audio_dir: str = "audio"
+    tts_provider: str = "edge"
+    elevenlabs_api_key: str = ""
+    elevenlabs_voice_id: str = "XB0fDUnXU5powFXDhCwa"
+    elevenlabs_model: str = "eleven_multilingual_v2"
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
     langfuse_host: str = "https://cloud.langfuse.com"
@@ -39,6 +43,10 @@ def load_settings() -> Settings:
         tts_voice=os.getenv("TTS_VOICE", "ru-RU-SvetlanaNeural"),
         # аудио живёт рядом с БД чатов
         audio_dir=os.path.join(os.path.dirname(chats_db_path) or ".", "audio"),
+        tts_provider=os.getenv("TTS_PROVIDER", "edge"),
+        elevenlabs_api_key=os.getenv("ELEVENLABS_API_KEY", ""),
+        elevenlabs_voice_id=os.getenv("ELEVENLABS_VOICE_ID", "XB0fDUnXU5powFXDhCwa"),
+        elevenlabs_model=os.getenv("ELEVENLABS_MODEL", "eleven_multilingual_v2"),
         langfuse_public_key=os.getenv("LANGFUSE_PUBLIC_KEY", ""),
         langfuse_secret_key=os.getenv("LANGFUSE_SECRET_KEY", ""),
         langfuse_host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
