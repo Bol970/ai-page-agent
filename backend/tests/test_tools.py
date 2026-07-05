@@ -187,3 +187,19 @@ def test_fetch_url_truncates_to_limit(monkeypatch):
     monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: resp)
     out = tools.fetch_url.invoke({"url": "https://e.test"})
     assert len(out) <= tools.FETCH_LIMIT
+
+
+def test_fetch_url_blocks_private_hosts(monkeypatch):
+    called = []
+    monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: called.append(1))
+    out = tools.fetch_url.invoke({"url": "http://127.0.0.1:8000/health"})
+    assert "внутренн" in out
+    assert not called  # до сетевого запроса дело не дошло
+
+
+def test_fetch_url_blocks_redirect_to_private_host(monkeypatch):
+    resp = _FakeHttpxResponse(b"")
+    resp.headers["location"] = "http://192.168.0.1/admin"
+    monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: resp)
+    out = tools.fetch_url.invoke({"url": "https://e.test"})
+    assert "внутренн" in out

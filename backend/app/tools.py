@@ -1,5 +1,7 @@
 import ast
+import ipaddress
 import operator
+import socket
 from datetime import datetime
 from urllib.parse import urljoin
 
@@ -160,20 +162,46 @@ FETCH_LIMIT = 8000
 FETCH_MAX_BYTES = 2_000_000
 
 
+def _private_host_reason(url: str) -> str | None:
+    """Не даём инструменту ходить на внутренние адреса (SSRF).
+    None — хост публичный или не резолвится (тогда ошибку вернёт сам httpx)."""
+    host = httpx.URL(url).host
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except OSError:
+        return None
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if not ip.is_global:
+            return f"Доступ к внутренним адресам запрещён ({host})."
+    return None
+
+
 @tool
 def fetch_url(url: str) -> str:
     """Скачивает страницу по URL и возвращает её содержимое как Markdown.
     Используй, чтобы прочитать ссылку с текущей страницы или из результатов поиска."""
-    if not url.startswith(("http://", "https://")):
-        return "Поддерживаются только http/https URL."
     try:
-        resp = httpx.get(
-            url,
-            timeout=15,
-            follow_redirects=True,
-            headers={"User-Agent": "Mozilla/5.0 (AI Page Agent)"},
-        )
-        resp.raise_for_status()
+        for _ in range(5):  # редиректам следуем вручную, проверяя каждый хоп (SSRF)
+            if not url.startswith(("http://", "https://")):
+                return "Поддерживаются только http/https URL."
+            blocked = _private_host_reason(url)
+            if blocked:
+                return blocked
+            resp = httpx.get(
+                url,
+                timeout=15,
+                follow_redirects=False,
+                headers={"User-Agent": "Mozilla/5.0 (AI Page Agent)"},
+            )
+            location = resp.headers.get("location")
+            if location:
+                url = str(httpx.URL(url).join(location))
+                continue
+            resp.raise_for_status()
+            break
+        else:
+            return "Слишком много редиректов."
     except Exception as exc:  # noqa: BLE001
         return f"Не удалось скачать {url} ({type(exc).__name__})."
     try:
