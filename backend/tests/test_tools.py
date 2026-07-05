@@ -1,3 +1,8 @@
+import ipaddress
+import socket
+
+import pytest
+
 from app import tools
 
 
@@ -136,11 +141,25 @@ def test_extract_links_survives_malformed_href():
 
 # --- fetch_url (httpx мокается, сети нет) ---
 
+@pytest.fixture(autouse=True)
+def _no_real_dns(monkeypatch):
+    """Тесты без сети: числовые IP «резолвятся» сами в себя, имена — не резолвятся."""
+    def fake_getaddrinfo(host, *args, **kwargs):
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            raise socket.gaierror(f"тестовый резолвер: {host}")
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (host, 0))]
+
+    monkeypatch.setattr(tools.socket, "getaddrinfo", fake_getaddrinfo)
+
+
 class _FakeHttpxResponse:
     def __init__(self, content=b"", ctype="text/html; charset=utf-8"):
         self.content = content
         self.headers = {"content-type": ctype}
         self.encoding = "utf-8"
+        self.status_code = 200
 
     def raise_for_status(self):
         pass
@@ -200,6 +219,15 @@ def test_fetch_url_blocks_private_hosts(monkeypatch):
 def test_fetch_url_blocks_redirect_to_private_host(monkeypatch):
     resp = _FakeHttpxResponse(b"")
     resp.headers["location"] = "http://192.168.0.1/admin"
+    resp.status_code = 302
     monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: resp)
     out = tools.fetch_url.invoke({"url": "https://e.test"})
     assert "внутренн" in out
+
+
+def test_fetch_url_location_without_redirect_status_returns_body(monkeypatch):
+    resp = _FakeHttpxResponse(b"real body", ctype="text/plain")
+    resp.headers["location"] = "https://other.test/x"  # 200 + Location — не редирект
+    monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: resp)
+    out = tools.fetch_url.invoke({"url": "https://e.test"})
+    assert "real body" in out

@@ -165,6 +165,8 @@ FETCH_MAX_BYTES = 2_000_000
 def _private_host_reason(url: str) -> str | None:
     """Не даём инструменту ходить на внутренние адреса (SSRF).
     None — хост публичный или не резолвится (тогда ошибку вернёт сам httpx)."""
+    # Ограничение: DNS резолвится здесь и ещё раз в httpx — DNS-rebinding (TOCTOU)
+    # этим не закрывается; для демо-инструмента приемлемо.
     host = httpx.URL(url).host
     try:
         infos = socket.getaddrinfo(host, None)
@@ -195,7 +197,7 @@ def fetch_url(url: str) -> str:
                 headers={"User-Agent": "Mozilla/5.0 (AI Page Agent)"},
             )
             location = resp.headers.get("location")
-            if location:
+            if location and 300 <= resp.status_code < 400:
                 url = str(httpx.URL(url).join(location))
                 continue
             resp.raise_for_status()
