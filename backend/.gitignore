@@ -7,3 +7,6 @@ __pycache__/
 # SQLite история чатов
 chats.db
 *.db
+
+# mp3 от text_to_speech
+audio/
