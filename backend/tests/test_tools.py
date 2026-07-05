@@ -132,3 +132,43 @@ def test_extract_links_survives_malformed_href():
         page_context.reset_page(token)
     assert "https://ok.test/a" in out
     assert "http://[bad" not in out
+
+
+# --- fetch_url (httpx мокается, сети нет) ---
+
+class _FakeHttpxResponse:
+    def __init__(self, content=b"", ctype="text/html; charset=utf-8"):
+        self.content = content
+        self.headers = {"content-type": ctype}
+        self.encoding = "utf-8"
+
+    def raise_for_status(self):
+        pass
+
+
+def test_fetch_url_html_to_markdown(monkeypatch):
+    resp = _FakeHttpxResponse(b"<h1>Hi</h1><script>var s=1;</script>")
+    monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: resp)
+    out = tools.fetch_url.invoke({"url": "https://e.test"})
+    assert "Hi" in out
+    assert "var s" not in out
+
+
+def test_fetch_url_plain_text_passthrough(monkeypatch):
+    resp = _FakeHttpxResponse(b"plain body", ctype="text/plain")
+    monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: resp)
+    assert "plain body" in tools.fetch_url.invoke({"url": "https://e.test"})
+
+
+def test_fetch_url_rejects_non_http():
+    out = tools.fetch_url.invoke({"url": "ftp://e.test"})
+    assert "http" in out
+
+
+def test_fetch_url_network_error_is_text(monkeypatch):
+    def boom(*a, **k):
+        raise tools.httpx.ConnectError("no route")
+
+    monkeypatch.setattr(tools.httpx, "get", boom)
+    out = tools.fetch_url.invoke({"url": "https://e.test"})
+    assert "Не удалось скачать" in out

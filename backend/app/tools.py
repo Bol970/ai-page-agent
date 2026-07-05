@@ -4,6 +4,7 @@ from datetime import datetime
 from urllib.parse import urljoin
 
 import os
+import httpx
 from bs4 import BeautifulSoup
 from exa_py import Exa
 from langchain_core.tools import tool
@@ -153,3 +154,33 @@ def extract_links() -> str:
         return "\n".join(lines) if lines else "На странице нет ссылок."
     except Exception as exc:  # noqa: BLE001
         return f"Не удалось разобрать ссылки страницы ({type(exc).__name__})."
+
+
+FETCH_LIMIT = 8000
+FETCH_MAX_BYTES = 2_000_000
+
+
+@tool
+def fetch_url(url: str) -> str:
+    """Скачивает страницу по URL и возвращает её содержимое как Markdown.
+    Используй, чтобы прочитать ссылку с текущей страницы или из результатов поиска."""
+    if not url.startswith(("http://", "https://")):
+        return "Поддерживаются только http/https URL."
+    try:
+        resp = httpx.get(
+            url,
+            timeout=15,
+            follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0 (AI Page Agent)"},
+        )
+        resp.raise_for_status()
+    except Exception as exc:  # noqa: BLE001
+        return f"Не удалось скачать {url} ({type(exc).__name__})."
+    body = resp.content[:FETCH_MAX_BYTES]
+    text = body.decode(resp.encoding or "utf-8", errors="replace")
+    if "html" in resp.headers.get("content-type", ""):
+        try:
+            text = markdownify(str(_clean_html(text)), heading_style="ATX")
+        except Exception:  # noqa: BLE001
+            pass  # отдадим сырой текст
+    return text.strip()[:FETCH_LIMIT]
