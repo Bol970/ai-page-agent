@@ -118,12 +118,12 @@ def page_to_markdown() -> str:
         return _PAGE_UNAVAILABLE
     try:
         md = markdownify(str(_clean_html(page.html)), heading_style="ATX")
+        md = "\n".join(line.rstrip() for line in md.splitlines())
+        while "\n\n\n" in md:
+            md = md.replace("\n\n\n", "\n\n")
+        return md.strip()[:PAGE_MD_LIMIT]
     except Exception as exc:  # noqa: BLE001
         return f"Не удалось сконвертировать страницу ({type(exc).__name__})."
-    md = "\n".join(line.rstrip() for line in md.splitlines())
-    while "\n\n\n" in md:
-        md = md.replace("\n\n\n", "\n\n")
-    return md.strip()[:PAGE_MD_LIMIT]
 
 
 @tool
@@ -133,17 +133,23 @@ def extract_links() -> str:
     page = page_context.get_page()
     if page is None or not page.html:
         return _PAGE_UNAVAILABLE
-    soup = _clean_html(page.html)
-    seen: set[str] = set()
-    lines: list[str] = []
-    for a in soup.find_all("a", href=True):
-        url = urljoin(page.url, a["href"])
-        if not url.startswith(("http://", "https://")) or url in seen:
-            continue
-        seen.add(url)
-        text = " ".join(a.get_text(" ", strip=True).split()) or url
-        lines.append(f"- [{text[:80]}]({url})")
-        if len(lines) >= MAX_LINKS:
-            lines.append(f"… и другие (показаны первые {MAX_LINKS}).")
-            break
-    return "\n".join(lines) if lines else "На странице нет ссылок."
+    try:
+        soup = _clean_html(page.html)
+        seen: set[str] = set()
+        lines: list[str] = []
+        for a in soup.find_all("a", href=True):
+            try:
+                url = urljoin(page.url, a["href"])
+            except ValueError:
+                continue  # битый href (например, "http://[bad") — пропускаем
+            if not url.startswith(("http://", "https://")) or url in seen:
+                continue
+            seen.add(url)
+            text = " ".join(a.get_text(" ", strip=True).split()) or url
+            lines.append(f"- [{text[:80]}]({url})")
+            if len(lines) >= MAX_LINKS:
+                lines.append(f"… и другие (показаны первые {MAX_LINKS}).")
+                break
+        return "\n".join(lines) if lines else "На странице нет ссылок."
+    except Exception as exc:  # noqa: BLE001
+        return f"Не удалось разобрать ссылки страницы ({type(exc).__name__})."

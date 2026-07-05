@@ -121,3 +121,14 @@ def test_extract_links_absolute_dedup_and_filters():
 
 def test_extract_links_without_context():
     assert "недоступно" in tools.extract_links.invoke({})
+
+
+def test_extract_links_survives_malformed_href():
+    html = '<a href="http://[bad">битая</a><a href="https://ok.test/a">ок</a>'
+    token = _with_page(html)
+    try:
+        out = tools.extract_links.invoke({})
+    finally:
+        page_context.reset_page(token)
+    assert "https://ok.test/a" in out
+    assert "http://[bad" not in out
