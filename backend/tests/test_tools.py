@@ -231,3 +231,47 @@ def test_fetch_url_location_without_redirect_status_returns_body(monkeypatch):
     monkeypatch.setattr(tools.httpx, "get", lambda *a, **k: resp)
     out = tools.fetch_url.invoke({"url": "https://e.test"})
     assert "real body" in out
+
+
+# --- text_to_speech (edge_tts мокается) ---
+
+def _tts_settings(tmp_path):
+    from app import config
+    from app.config import Settings
+
+    config.settings = Settings("k", "u", "m", "e", 100, audio_dir=str(tmp_path))
+    return config
+
+
+class _FakeCommunicate:
+    def __init__(self, text, voice):
+        self.text = text
+        self.voice = voice
+
+    async def save(self, path):
+        with open(path, "wb") as f:
+            f.write(b"mp3-bytes")
+
+
+def test_text_to_speech_saves_file_and_returns_link(monkeypatch, tmp_path):
+    _tts_settings(tmp_path)
+    monkeypatch.setattr(tools.edge_tts, "Communicate", _FakeCommunicate)
+    out = tools.text_to_speech.invoke({"text": "привет"})
+    assert "http://localhost:8000/audio/" in out
+    files = list(tmp_path.glob("*.mp3"))
+    assert len(files) == 1
+    assert files[0].read_bytes() == b"mp3-bytes"
+    assert files[0].name in out
+
+
+def test_text_to_speech_error_is_text(monkeypatch, tmp_path):
+    _tts_settings(tmp_path)
+
+    class _Boom:
+        def __init__(self, *a, **k):
+            raise RuntimeError("edge-tts недоступен")
+
+    monkeypatch.setattr(tools.edge_tts, "Communicate", _Boom)
+    out = tools.text_to_speech.invoke({"text": "привет"})
+    assert "Озвучка сейчас недоступна" in out
+    assert list(tmp_path.glob("*.mp3")) == []

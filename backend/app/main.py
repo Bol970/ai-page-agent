@@ -1,5 +1,9 @@
+import os
+import re
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 from app import config, db
@@ -32,6 +36,22 @@ def _conn():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+_AUDIO_NAME = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.mp3$"
+)
+
+
+@app.get("/audio/{filename}")
+def get_audio(filename: str):
+    # только имена, которые генерирует text_to_speech — никакого path traversal
+    if not _AUDIO_NAME.fullmatch(filename):
+        raise HTTPException(status_code=404, detail="not found")
+    path = os.path.join(config.settings.audio_dir, filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="not found")
+    return FileResponse(path, media_type="audio/mpeg")
 
 
 @app.get("/chats")

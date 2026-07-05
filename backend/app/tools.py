@@ -1,18 +1,21 @@
 import ast
+import asyncio
 import ipaddress
 import operator
 import socket
+import uuid
 from datetime import datetime
 from urllib.parse import urljoin
 
 import os
 import httpx
+import edge_tts
 from bs4 import BeautifulSoup
 from exa_py import Exa
 from langchain_core.tools import tool
 from markdownify import markdownify
 
-from app import page_context
+from app import config, page_context
 
 
 @tool
@@ -220,3 +223,25 @@ def fetch_url(url: str) -> str:
         return text.strip()[:FETCH_LIMIT]
     except Exception as exc:  # noqa: BLE001
         return f"Не удалось обработать содержимое {url} ({type(exc).__name__})."
+
+
+TTS_TEXT_LIMIT = 3000
+
+
+@tool
+def text_to_speech(text: str) -> str:
+    """Озвучивает текст и возвращает ссылку на mp3-файл. Используй, когда
+    пользователь просит озвучить, прочитать вслух или сделать аудио из текста."""
+    snippet = text[:TTS_TEXT_LIMIT]
+    filename = f"{uuid.uuid4()}.mp3"
+    path = os.path.join(config.settings.audio_dir, filename)
+    try:
+        os.makedirs(config.settings.audio_dir, exist_ok=True)
+        communicate = edge_tts.Communicate(snippet, voice=config.settings.tts_voice)
+        asyncio.run(communicate.save(path))
+    except Exception as exc:  # noqa: BLE001
+        return f"Озвучка сейчас недоступна ({type(exc).__name__})."
+    return (
+        f"Аудио готово: http://localhost:8000/audio/{filename}\n"
+        "Вставь эту ссылку в ответ пользователю как есть."
+    )
