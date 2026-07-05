@@ -173,10 +173,10 @@ def _private_host_reason(url: str) -> str | None:
     host = httpx.URL(url).host
     try:
         infos = socket.getaddrinfo(host, None)
-    except OSError:
+        ips = [ipaddress.ip_address(info[4][0]) for info in infos]
+    except (OSError, ValueError):
         return None
-    for info in infos:
-        ip = ipaddress.ip_address(info[4][0])
+    for ip in ips:
         if not ip.is_global:
             return f"Доступ к внутренним адресам запрещён ({host})."
     return None

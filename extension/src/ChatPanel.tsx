@@ -151,7 +151,13 @@ export function ChatPanel({
                       dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
                     />
                     {extractAudioUrls(m.content).map((src) => (
-                      <audio key={src} controls src={src} className="mt-2 w-full" />
+                      <audio
+                        key={src}
+                        controls
+                        src={src}
+                        className="mt-2 w-full"
+                        onError={(e) => e.currentTarget.classList.add("hidden")}
+                      />
                     ))}
                   </div>
                 )}

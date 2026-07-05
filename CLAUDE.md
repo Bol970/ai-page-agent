@@ -69,6 +69,13 @@ Node 20+ (на Node 18 сборка работает, но CLI `shadcn` — не
 
 Чаты группируются по URL без query/hash. Нормализация **продублирована** в двух местах и должна совпадать: `normalize_url` в `backend/app/db.py` и `normalizeUrl` в `extension/src/App.tsx`. Меняешь одну — меняй вторую.
 
+### Инвариант адреса бэкенда
+
+`http://localhost:8000` захардкожен в трёх местах, которые должны совпадать:
+`text_to_speech` в `backend/app/tools.py` (ссылка на mp3), `BASE` в
+`extension/src/lib/chatsApi.ts` и `AUDIO_URL_RE` в `extension/src/ChatPanel.tsx`.
+Меняешь порт — меняй все три.
+
 ## Проектные документы
 
 - `docs/superpowers/specs/` и `docs/superpowers/plans/` — дизайн-доки и планы реализованных фич (side panel, история чатов).
